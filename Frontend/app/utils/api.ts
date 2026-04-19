@@ -1,11 +1,30 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+
+function normalizeApiBaseUrl(url: string) {
+  const trimmed = url.trim().replace(/\/+$/, '');
+  if (!trimmed) return '';
+  return /\/api$/i.test(trimmed) ? trimmed : `${trimmed}/api`;
+}
+
+const API_BASE_URL = normalizeApiBaseUrl(RAW_API_URL);
+const FALLBACK_LOCAL_API_URL = 'http://localhost:8080/api';
+
+function getApiBaseUrl() {
+  // Use localhost fallback only in development.
+  if (API_BASE_URL) return API_BASE_URL;
+  if (process.env.NODE_ENV !== 'production') return FALLBACK_LOCAL_API_URL;
+  throw new Error('NEXT_PUBLIC_API_URL is missing in production environment');
+}
+
+const RESOLVED_API_BASE_URL = getApiBaseUrl();
+const BACKEND_BASE_URL = RESOLVED_API_BASE_URL.replace(/\/api$/i, '');
 
 /**
  * Fetch all Quran chapters
  */
 export async function fetchChapters() {
   try {
-    const response = await fetch(`${API_BASE_URL}/quran/surahs`);
+    const response = await fetch(`${RESOLVED_API_BASE_URL}/quran/surahs`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -23,7 +42,7 @@ export async function fetchChapters() {
  */
 export async function fetchChapterVerses(chapterId: string) {
   try {
-    const response = await fetch(`${API_BASE_URL}/quran/surahs/${chapterId}`);
+    const response = await fetch(`${RESOLVED_API_BASE_URL}/quran/surahs/${chapterId}`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -42,7 +61,7 @@ export async function fetchChapterVerses(chapterId: string) {
 export async function searchQuran(query: string) {
   try {
     const params = new URLSearchParams({ q: query });
-    const response = await fetch(`${API_BASE_URL}/quran/search?${params}`);
+    const response = await fetch(`${RESOLVED_API_BASE_URL}/quran/search?${params}`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -61,7 +80,7 @@ export async function searchQuran(query: string) {
  */
 export async function searchQuranAdvanced(query: string, options: any = {}) {
   try {
-    const response = await fetch(`${API_BASE_URL}/quran/search`, {
+    const response = await fetch(`${RESOLVED_API_BASE_URL}/quran/search`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -90,7 +109,7 @@ export async function searchQuranAdvanced(query: string, options: any = {}) {
  */
 export async function getVerse(surah: number, ayah: number) {
   try {
-    const response = await fetch(`${API_BASE_URL}/quran/verse/${surah}/${ayah}`);
+    const response = await fetch(`${RESOLVED_API_BASE_URL}/quran/verse/${surah}/${ayah}`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -107,7 +126,7 @@ export async function getVerse(surah: number, ayah: number) {
  */
 export async function healthCheck() {
   try {
-    const response = await fetch(`${API_BASE_URL}/health`);
+    const response = await fetch(`${BACKEND_BASE_URL}/health`);
     if (!response.ok) {
       throw new Error(`API health check failed: ${response.status}`);
     }
@@ -118,3 +137,4 @@ export async function healthCheck() {
     return null;
   }
 }
+
